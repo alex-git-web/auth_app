@@ -1,6 +1,6 @@
 import React from 'react';
 import HomeScreen from './screens/Home/home_screen';
-import LogInScreen from './screens/LogIn/logIn_screen';
+import LogInScreen from './screens/Login/login_screen';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer } from '@react-navigation/native';
 
@@ -15,7 +15,7 @@ const RootStack = createNativeStackNavigator<RootStackParamList>();
 const Navigation:React.FC = () => {
   return ( 
     <NavigationContainer> 
-        <RootStack.Navigator>
+        <RootStack.Navigator initialRouteName='LogInScreen'>
             <RootStack.Screen 
                 name="HomeScreen" 
                 component={HomeScreen} 

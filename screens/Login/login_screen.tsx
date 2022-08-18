@@ -1,0 +1,201 @@
+import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import React, { useEffect, useState } from 'react'
+import { colors } from '../../colors'
+import { INavigationData } from '../../interfaces'
+import { useDispatch, useSelector } from 'react-redux'
+import { RootState } from '../../redux/store'
+import { setIsAuth } from '../../redux/user.slice'
+
+const LoginScreen: React.FC<INavigationData> = props => {
+  const isAuth = useSelector((state: RootState) => state.user.isAuth);
+  const dispatch = useDispatch();
+
+  // const [isAuth, setIsAuth] = useState<boolean>(false);
+  const [email, setEmail] = useState<string>('a.d.20002106@gmail.com');
+  const [password, setPassword] = useState<string>('Alex6012d');
+
+  const [isEmailValid, setIsEmailValid] = useState<boolean>(false);
+  const [isPasswordValid, setIsPasswordValid] = useState<boolean>(false);
+
+  const [errorText, setErrorText] = useState<string>('');
+  const [isShowError, setIsShowError] = useState<boolean>(false);
+  // interface RootState {
+  //   weatherApiConfigure: boolean
+  // }
+  // const [isNextDaysWeatherDataLoaded, setIsNextDaysWeatherDataLoaded] = useState<RootState>({weatherApiConfigure: false});
+  // props.navigation.navigate("HomeScreen", { 
+  //   date: item.date, 
+  //   dayStatus: item.status
+  // })
+
+  const validateEmail = () => {
+    var re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    if (re.test(email)) {
+      return true
+    }
+    else {
+      setErrorText(error => error += 'Email is not correct. ')
+      return false
+    };
+  };
+
+  const validatePassword = () => {
+    var minNumberofChars = 6;
+    var maxNumberofChars = 16;
+    var regularExpression  = /^[a-zA-Z0-9!@#$%^&*]{6,16}$/;
+    if(password.length < minNumberofChars || password.length > maxNumberofChars) {
+      setErrorText(error => error += 'Password is not correct. ')
+      return false;
+    }
+    if(!regularExpression.test(password)) {
+      setErrorText(
+        error => error 
+        += "Password should contain atleast one number and one special character."
+      );
+      return false;
+    }
+    return true;
+  }
+
+  const emailEvent = (text : string) => {
+    if (isShowError) setIsShowError(false)
+    if (errorText != '') setErrorText('');
+    setEmail(text)
+  }
+
+  const passwordEvent = (text : string) => {
+    if (isShowError) setIsShowError(false)
+    if (errorText != '') setErrorText('');
+    setPassword(text)
+  }
+
+  const dataValidate = () => {
+    if (isShowError) setIsShowError(false)
+    if (errorText != '') setErrorText('');
+    const vEmail = validateEmail(); 
+    const vPassword = validatePassword()
+
+    if (vEmail && vPassword) {
+      console.log('Login data is correct!');
+      dispatch(setIsAuth(true))
+    }
+    else setIsShowError(true)
+
+    setIsEmailValid(vEmail)
+    setIsPasswordValid(vPassword)
+  }
+
+  useEffect(() => {
+    if (isAuth) props.navigation.navigate("HomeScreen");
+  }, [isAuth])
+  
+  if (!isAuth)
+    return (
+      <View style={styles.container}>
+        <Text style={styles.caption}>Login Screen</Text>
+        <View style={styles.inputs_container}>
+          <View style={styles.input}>
+            <TextInput
+              defaultValue={email}
+              style={styles.email_input}
+              placeholder="Enter email"
+              placeholderTextColor={colors.black}
+              onChangeText={(text) => emailEvent(text)}
+            />
+          </View>
+          <View style={styles.input}>
+            <TextInput
+              defaultValue={password}
+              style={styles.password_input}
+              placeholder="Enter password"
+              placeholderTextColor={colors.black}
+              onChangeText={(text) => passwordEvent(text)}
+              secureTextEntry
+            />
+          </View>
+        </View>
+
+        <TouchableOpacity style={styles.loginBtn} onPress={() => dataValidate()}>
+          <Text style={styles.loginBtnText}>
+            Log In
+          </Text>
+        </TouchableOpacity>
+
+          <View style={styles.error}>
+            <Text style={styles.error_text}>
+              { isShowError ? errorText : '' }
+            </Text>
+          </View>
+      </View>
+    )
+  else return null 
+}
+
+export default LoginScreen;
+
+const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.white,
+      paddingHorizontal: 20,
+      paddingVertical: 20,
+      justifyContent: 'center',
+      alignItems: 'center'
+    },
+    caption: {
+      textAlign: 'center',
+      color: colors.lightBlue,
+      fontSize: 25
+    },
+    inputs_container: {
+      width: '100%',
+      alignItems: 'center',
+      marginTop: 35
+    },
+    input: {
+      height: 50, 
+      width: '100%',
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.lightGray,
+      color: colors.black,
+      fontSize: 15,
+      paddingHorizontal: 15,
+      marginBottom: 20
+    },
+    email_input: {
+      fontSize: 15,
+      color: colors.black
+    },
+    password_input: {
+      fontSize: 15,
+      color: colors.black
+    },
+    loginBtn: {
+      width: 200,
+      height: 50,
+      backgroundColor: colors.lightBlue,
+      textAlign: 'center',
+      borderRadius: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 10
+    },
+    loginBtnText: {
+      fontSize: 15,
+      color: colors.white,
+      fontWeight: '600'
+    },
+    error: {
+      width: 400,
+      height: 70,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: 40
+    },
+    error_text: {
+      fontSize: 15,
+      color: colors.lightRed
+    },
+    
+})
