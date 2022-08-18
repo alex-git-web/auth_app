@@ -1,6 +1,6 @@
 import React from 'react';
-import HomeScreen from './screens/Home/home_screen';
-import LogInScreen from './screens/Login/login_screen';
+import HomeScreen from '../screens/Home/home_screen';
+import LogInScreen from '../screens/Login/login_screen';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer } from '@react-navigation/native';
 

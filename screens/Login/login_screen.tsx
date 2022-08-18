@@ -1,32 +1,22 @@
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import React, { useEffect, useState } from 'react'
-import { colors } from '../../colors'
-import { INavigationData } from '../../interfaces'
+import { colors } from '../../other/colors'
+import { INavigationData } from '../../other/interfaces'
 import { useDispatch, useSelector } from 'react-redux'
 import { RootState } from '../../redux/store'
 import { setIsAuth } from '../../redux/user.slice'
+import { registerdUsers } from '../../other/registeredUsers'
 
 const LoginScreen: React.FC<INavigationData> = props => {
   const isAuth = useSelector((state: RootState) => state.user.isAuth);
   const dispatch = useDispatch();
 
   // const [isAuth, setIsAuth] = useState<boolean>(false);
-  const [email, setEmail] = useState<string>('a.d.20002106@gmail.com');
-  const [password, setPassword] = useState<string>('Alex6012d');
-
-  const [isEmailValid, setIsEmailValid] = useState<boolean>(false);
-  const [isPasswordValid, setIsPasswordValid] = useState<boolean>(false);
+  const [email, setEmail] = useState<string>('kameil@gmail.com');
+  const [password, setPassword] = useState<string>('Qwerty1234');
 
   const [errorText, setErrorText] = useState<string>('');
   const [isShowError, setIsShowError] = useState<boolean>(false);
-  // interface RootState {
-  //   weatherApiConfigure: boolean
-  // }
-  // const [isNextDaysWeatherDataLoaded, setIsNextDaysWeatherDataLoaded] = useState<RootState>({weatherApiConfigure: false});
-  // props.navigation.navigate("HomeScreen", { 
-  //   date: item.date, 
-  //   dayStatus: item.status
-  // })
 
   const validateEmail = () => {
     var re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
@@ -61,6 +51,7 @@ const LoginScreen: React.FC<INavigationData> = props => {
     if (isShowError) setIsShowError(false)
     if (errorText != '') setErrorText('');
     setEmail(text)
+    
   }
 
   const passwordEvent = (text : string) => {
@@ -74,15 +65,30 @@ const LoginScreen: React.FC<INavigationData> = props => {
     if (errorText != '') setErrorText('');
     const vEmail = validateEmail(); 
     const vPassword = validatePassword()
+    console.log(vEmail, vPassword)
 
-    if (vEmail && vPassword) {
-      console.log('Login data is correct!');
-      dispatch(setIsAuth(true))
+    if (!vEmail || !vPassword) setIsShowError(true)
+    else {
+      if (registerdUsers.find(user => user.email == email) && 
+          registerdUsers.find(user => user.password == password)
+      ) {
+        console.log('Login data is correct!');
+        dispatch(setIsAuth(
+          {
+            isAuth: true,
+            data: {
+              userName: registerdUsers.find(user => user.email == email)?.userName,
+              email,
+              password
+            }
+          }
+        ))
+      }
+      else {
+        setErrorText("This user in not registered!")
+        setIsShowError(true)
+      }
     }
-    else setIsShowError(true)
-
-    setIsEmailValid(vEmail)
-    setIsPasswordValid(vPassword)
   }
 
   useEffect(() => {
@@ -115,12 +121,15 @@ const LoginScreen: React.FC<INavigationData> = props => {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.loginBtn} onPress={() => dataValidate()}>
-          <Text style={styles.loginBtnText}>
-            Log In
-          </Text>
-        </TouchableOpacity>
-
+        { email != '' && password != '' 
+          ?
+          <TouchableOpacity style={styles.loginBtn} onPress={() => dataValidate()}>
+            <Text style={styles.loginBtnText}>
+              Log In
+            </Text>
+          </TouchableOpacity>
+          : null
+        }
           <View style={styles.error}>
             <Text style={styles.error_text}>
               { isShowError ? errorText : '' }
