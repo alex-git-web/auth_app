@@ -13,9 +13,9 @@ type UserState = {
 
 // Define the initial state using that type
 const initialState: UserState = {
-  isAuth: true,
+  isAuth: false,
   data: {
-    userName: 'Ivan',
+    userName: '',
     email: '',
     password: ''
   }

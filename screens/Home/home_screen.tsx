@@ -5,6 +5,8 @@ import { INavigationData } from '../../other/interfaces'
 import { useDispatch, useSelector } from 'react-redux'
 import { RootState } from '../../redux/store'
 import { setIsAuth } from '../../redux/user.slice'
+import Snackbar from 'react-native-snackbar'
+import ModalWindow from './components/modalWindow'
 
 const HomeScreen: React.FC<INavigationData> = props => {
   const user = useSelector((state: RootState) => state.user);
@@ -12,26 +14,49 @@ const HomeScreen: React.FC<INavigationData> = props => {
 
   const [isDownloadingPosts, setIsDownloadingPosts] = useState<boolean>(false);
   const [posts, setPosts] = useState<any>(null);
+  const [selectedPostId, setSelectedPostId] = useState<number>(-1);
+  
+  const showSnackbar = (msg: string, actionText: string, actionFunc: Function) => {
+    setIsDownloadingPosts(false)
+    Snackbar.show({
+      text: msg,
+      backgroundColor: colors.black,
+      textColor: colors.white,
+      duration: Snackbar.LENGTH_SHORT,
+      action: {
+        text: actionText,
+        textColor: colors.lightGreen,
+        onPress: () => { actionFunc() },
+      },
+    });
+  }
 
   const loadPostsFromServer = async () => {
     setIsDownloadingPosts(true)
+   
     try {
       const response = await fetch('https://jsonplaceholder.typicode.com/posts/')
       const json = await response.json()
       setPosts(json.filter((post: { id: number }) => post.id < 10))
-      return json.movies
-    } catch (error) {
-      console.error(error)
+    } 
+    catch (error) {
+      console.error(error);
+      showSnackbar(
+        'An error occured in while downloading \'posts\'. ',
+        'Try again',
+        loadPostsFromServer
+      )
     }
   }
 
   const postItem = (item : any) => {
-    console.log(item)
-
-    return <View style={styles.postItem}>
-            <Text style={styles.titlePost}>{item.item.title}</Text>
-            <Text style={styles.bodyPost}>{item.item.body}</Text>
-          </View>
+    // console.log(item)
+    return <TouchableOpacity onPress={() => setSelectedPostId(item.item.id)}>
+            <View style={styles.postItem}>
+              <Text style={styles.titlePost}>{item.item.title}</Text>
+              <Text style={styles.bodyPost}>{item.item.body}</Text>
+            </View>
+          </TouchableOpacity>
   };
 
   const logOut = () => {
@@ -78,9 +103,9 @@ const HomeScreen: React.FC<INavigationData> = props => {
           {
             isDownloadingPosts 
             ? 
-              <View style={{marginVertical: 20}}>
-                <ActivityIndicator size={30} color={colors.lightBlue} />
-              </View>
+            <View style={{marginVertical: 20}}>
+              <ActivityIndicator size={30} color={colors.lightBlue} />
+            </View>
             : null
           }
 
@@ -97,6 +122,16 @@ const HomeScreen: React.FC<INavigationData> = props => {
             : null
           }
         </View>
+
+        {
+          selectedPostId != -1 
+          ? <ModalWindow  
+              postId={selectedPostId} 
+              showSnackbar={showSnackbar} 
+              setSelectedPostId={setSelectedPostId}
+            />
+          : null
+        }
       </View>
     )
   else return null
@@ -106,6 +141,7 @@ export default HomeScreen;
 
 const styles = StyleSheet.create({
   container: {
+    position: 'relative',
     flex: 1,
     justifyContent: 'flex-start',
     alignItems: 'stretch'
