@@ -1,5 +1,6 @@
 import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import React, { useEffect, useState } from 'react'
+import NetInfo from "@react-native-community/netinfo";
 import { colors } from '../../other/colors'
 import { INavigationData } from '../../other/interfaces'
 import { useDispatch, useSelector } from 'react-redux'
@@ -7,15 +8,34 @@ import { RootState } from '../../redux/store'
 import { setIsAuth } from '../../redux/user.slice'
 import Snackbar from 'react-native-snackbar'
 import ModalWindow from './components/modalWindow'
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+let unsubscribe: any;
 
 const HomeScreen: React.FC<INavigationData> = props => {
   const user = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch();
 
+  const [internetStatus, setInternetStatus] = useState<{isShowNotify: boolean, isInternet: boolean | any}>(
+    {
+      isShowNotify: false,
+      isInternet: false
+    }
+  );
   const [isDownloadingPosts, setIsDownloadingPosts] = useState<boolean>(false);
   const [posts, setPosts] = useState<any>(null);
   const [selectedPostId, setSelectedPostId] = useState<number>(-1);
   
+  const readFromFile = async (storageKey: string) => {
+    try {
+      const de_posts: any = await AsyncStorage.getItem('@' + storageKey)
+      de_posts != null ? JSON.parse(de_posts) : null;
+      return await JSON.parse(de_posts)
+    } catch(e) {
+      console.log('An error occured while read from file (Async Storage): ', e)
+    }
+  }
+
   const showSnackbar = (msg: string, actionText: string, actionFunc: Function) => {
     setIsDownloadingPosts(false)
     Snackbar.show({
@@ -26,31 +46,45 @@ const HomeScreen: React.FC<INavigationData> = props => {
       action: {
         text: actionText,
         textColor: colors.lightGreen,
-        onPress: () => { actionFunc() },
+        onPress: () => actionFunc(),
       },
     });
   }
 
   const loadPostsFromServer = async () => {
-    setIsDownloadingPosts(true)
-   
-    try {
-      const response = await fetch('https://jsonplaceholder.typicode.com/posts/')
-      const json = await response.json()
-      setPosts(json.filter((post: { id: number }) => post.id < 10))
-    } 
-    catch (error) {
-      console.error(error);
-      showSnackbar(
-        'An error occured in while downloading \'posts\'. ',
-        'Try again',
-        loadPostsFromServer
-      )
+    if (internetStatus.isInternet) {
+      setIsDownloadingPosts(true)
+    
+      try {
+        const response = await fetch('https://jsonplaceholder.typicode.com/posts/')
+        const json = await response.json()
+        const res_posts = json.filter((post: { id: number }) => post.id < 5)
+
+        // Save 'posts' in local
+        try {
+          const en_posts = JSON.stringify(res_posts)
+          await AsyncStorage.setItem('@posts', en_posts)
+        } catch (e) {
+          console.log('An error occured while write to file (Async Storage): ', e)
+        }
+
+        setPosts(res_posts)
+      } 
+      catch (error) {
+        console.error(error);
+        showSnackbar(
+          'An error occured in while downloading \'posts\'. ',
+          'Try again',
+          loadPostsFromServer
+        )
+      }
+    }
+    else {
+      setPosts(await readFromFile('posts'))
     }
   }
 
   const postItem = (item : any) => {
-    // console.log(item)
     return <TouchableOpacity onPress={() => setSelectedPostId(item.item.id)}>
             <View style={styles.postItem}>
               <Text style={styles.titlePost}>{item.item.title}</Text>
@@ -60,6 +94,7 @@ const HomeScreen: React.FC<INavigationData> = props => {
   };
 
   const logOut = () => {
+    unsubscribe() // remove check Internet status listener
     setPosts(null)
     dispatch(setIsAuth(
       {
@@ -72,6 +107,18 @@ const HomeScreen: React.FC<INavigationData> = props => {
       }
     ))
   }
+
+  useEffect(() => {
+    // Set Internet status listener
+    unsubscribe = NetInfo.addEventListener(state => {
+      setInternetStatus(
+        {
+          isShowNotify: !state.isConnected ? true : false,
+          isInternet: state.isConnected,
+        }
+      );
+    });
+  }, [])
 
   useEffect(() => {
     if (!user.isAuth) props.navigation.navigate("LogInScreen");
@@ -92,6 +139,15 @@ const HomeScreen: React.FC<INavigationData> = props => {
         </View>
 
         <View style={styles.body}>
+          {
+            internetStatus.isShowNotify
+            ?
+            <View style={styles.isEnternetNotifity}>
+              <Text style={styles.isEnternetNotifity_text}>Not connection with Internet!</Text>
+            </View>
+            : null
+          }
+
           <Text style={styles.welcome}>Hi, { user.data.userName }! </Text>
 
           <TouchableOpacity style={styles.loadPosts} onPress={() => loadPostsFromServer()}>
@@ -124,11 +180,13 @@ const HomeScreen: React.FC<INavigationData> = props => {
         </View>
 
         {
-          selectedPostId != -1 
+          selectedPostId != -1
           ? <ModalWindow  
               postId={selectedPostId} 
               showSnackbar={showSnackbar} 
               setSelectedPostId={setSelectedPostId}
+              isInternet={internetStatus.isInternet}
+              readFromFile={readFromFile}
             />
           : null
         }
@@ -166,6 +224,19 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     justifyContent: 'flex-start',
     alignItems: 'center'
+  },
+  isEnternetNotifity: {
+    backgroundColor: colors.lightGray_2,
+    marginBottom: 30,
+    width: '100%',
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  isEnternetNotifity_text: {
+    color: colors.lightRed,
+    fontSize: 20,
+    fontWeight: '600'
   },
   welcome: {
     textAlign: 'center',
@@ -205,8 +276,9 @@ const styles = StyleSheet.create({
   /* Posts list */
   postsList: {
     backgroundColor: colors.lightBlue_2,
+    height: '60%',
     marginTop: 15,
-    paddingHorizontal: 10
+    paddingHorizontal: 10,
   },
   postItem: {
     backgroundColor: colors.white,

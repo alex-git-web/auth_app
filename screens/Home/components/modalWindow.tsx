@@ -5,7 +5,9 @@ import { colors } from "../../../other/colors";
 const ModalWindow: React.FC<{
     postId: number, 
     showSnackbar: Function
-    setSelectedPostId: any
+    setSelectedPostId: any,
+    isInternet: boolean,
+    readFromFile: Function
 }> = props => {
     const [isDownloadingComments, setIsDownloadingComments] = useState<boolean>(false);
     const [postComments, setPostComments] = useState<any>(null); 
@@ -15,27 +17,35 @@ const ModalWindow: React.FC<{
     }
     
     const downloadPostComments = async ()  => {
-        setIsDownloadingComments(true)
-   
-        try {
-          const response = await fetch('https://jsonplaceholder.typicode.com/posts/'+ props.postId +'/comments')
-          const json = await response.json()
-          console.log(json)
-          setPostComments(json)
-        } 
-        catch (error) {
-          console.error(error);
-          props.showSnackbar(
-            'An error occured in while downloading \'comments for post.\'. ',
-            'OK',
-            null
-          );
-          setTimeout(() => hideModalWindow(), 1000) 
+        if (props.isInternet) {
+            setIsDownloadingComments(true)
+            
+            try {
+                const response = await fetch('https://jsonplaceholder.typicode.com/posts/'+ props.postId +'/comments')
+                const json = await response.json()
+
+                setPostComments(json)
+            } 
+            catch (error) {
+                console.error(error);
+                props.showSnackbar(
+                    'An error occured in while downloading \'comments for post.\'. ',
+                    'OK',
+                    null
+                );
+                setTimeout(() => hideModalWindow(), 1000) 
+            }
+        }
+        else {
+            let res = await props.readFromFile('comments');
+            setPostComments(
+                res.filter((comment: any) => comment.postId === props.postId)
+            )
         }
     }
     const commentItem = (item: any) => {
-        // console.log(item)
         return <View style={styles.commentItem}>
+                    <Text style={styles.commentCaption}>PostId: </Text><Text style={styles.postId}>{item.item.postId}</Text>
                     <Text style={styles.commentCaption}>Name: </Text><Text style={styles.authorName}>{item.item.name}</Text>
                     <Text style={styles.commentCaption}>Email: </Text><Text style={styles.authorEmail}>{item.item.email}</Text>
                     <Text style={styles.commentCaption}>Body: </Text><Text style={styles.commentText}>{item.item.body}</Text>
@@ -43,7 +53,6 @@ const ModalWindow: React.FC<{
     };
 
     useEffect(() => {
-        console.log(1)
         if (postComments != null) setIsDownloadingComments(false);
         else downloadPostComments()
     }, [postComments])
@@ -63,7 +72,7 @@ const ModalWindow: React.FC<{
             activeOpacity={1} 
             onPressOut={() => {hideModalWindow()}}
         >
-            <TouchableWithoutFeedback >
+            <TouchableWithoutFeedback style={{flex: 1}}>
                 <View style={styles.modalContainer}>
                 {
                     postComments != null
@@ -106,6 +115,7 @@ const styles = StyleSheet.create({
     container_2 : {
         height: '100%', 
         width: '100%',
+        flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
         position: 'relative'
@@ -125,6 +135,11 @@ const styles = StyleSheet.create({
         borderBottomColor: colors.lightBlue,
         borderBottomWidth: 3,
         paddingBottom: 15
+    },
+    postId: {
+        color: colors.lightGreen,
+        fontSize: 17,
+        fontWeight: '600'
     },
     authorName: {
         color: colors.black,

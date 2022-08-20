@@ -1,11 +1,15 @@
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import React, { useEffect, useState } from 'react'
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '../../other/colors'
 import { INavigationData } from '../../other/interfaces'
 import { useDispatch, useSelector } from 'react-redux'
 import { RootState } from '../../redux/store'
 import { setIsAuth } from '../../redux/user.slice'
 import { registerdUsers } from '../../other/registeredUsers'
+import { posts } from '../../other/posts';
+import { comments } from '../../other/comments';
+
 
 const LoginScreen: React.FC<INavigationData> = props => {
   const isAuth = useSelector((state: RootState) => state.user.isAuth);
@@ -47,32 +51,31 @@ const LoginScreen: React.FC<INavigationData> = props => {
     return true;
   }
 
-  const emailEvent = (text : string) => {
+  const clearError = () => {
     if (isShowError) setIsShowError(false)
     if (errorText != '') setErrorText('');
+  }
+
+  const emailEvent = (text : string) => {
+    clearError()
     setEmail(text)
-    
   }
 
   const passwordEvent = (text : string) => {
-    if (isShowError) setIsShowError(false)
-    if (errorText != '') setErrorText('');
+    clearError()
     setPassword(text)
   }
 
   const dataValidate = () => {
-    if (isShowError) setIsShowError(false)
-    if (errorText != '') setErrorText('');
+    clearError()
     const vEmail = validateEmail(); 
     const vPassword = validatePassword()
-    console.log(vEmail, vPassword)
 
     if (!vEmail || !vPassword) setIsShowError(true)
     else {
       if (registerdUsers.find(user => user.email == email) && 
           registerdUsers.find(user => user.password == password)
       ) {
-        console.log('Login data is correct!');
         dispatch(setIsAuth(
           {
             isAuth: true,
@@ -90,6 +93,23 @@ const LoginScreen: React.FC<INavigationData> = props => {
       }
     }
   }
+  
+  const writeToFile = async () => {
+    try {
+      const en_posts = JSON.stringify(posts)
+      await AsyncStorage.setItem('@posts', en_posts)
+
+      const en_comments = JSON.stringify(comments)
+      await AsyncStorage.setItem('@comments', en_comments)
+    } catch (e) {
+      console.log('An error occured while write to file (Async Storage): ', e)
+    }
+  }
+
+  useEffect(() => {
+    // Create and write file with default 'posts' and 'comments' data
+    writeToFile()
+  }, [])
 
   useEffect(() => {
     if (isAuth) props.navigation.navigate("HomeScreen");
